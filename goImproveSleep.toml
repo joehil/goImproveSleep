@@ -1,0 +1,15 @@
+# do a trace (get more output to log), true or false
+do_trace = true
+
+# location of tar command
+playcmd = "/usr/bin/play"
+
+# file to play
+playfile = "./data/pink-20.mp3"
+
+# volume to play
+playvolume = 0.03
+
+# heart rate that indicates sleep
+sleeplimit = 70
+

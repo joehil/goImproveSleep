@@ -6,8 +6,12 @@ import (
 	"math"
 	"strconv"
 	"time"
+	"os"
+	"os/exec"
+	"log"
 
 	"tinygo.org/x/bluetooth"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -15,8 +19,13 @@ var (
 
 	heartRateServiceUUID        = bluetooth.ServiceUUIDHeartRate
 	heartRateCharacteristicUUID = bluetooth.CharacteristicUUIDHeartRateMeasurement
-	heartService2UUID           = bluetooth.UUID([]uint32{0, 0, 0, 0})
-	heartCharacteristic2UUID    = bluetooth.UUID([]uint32{0, 0, 0, 0})
+	heartService2UUID           = bluetooth.UUID([4]uint32{0, 0, 0, 0})
+	heartCharacteristic2UUID    = bluetooth.UUID([4]uint32{0, 0, 0, 0})
+	do_trace bool = true
+	playcmd string
+	playfile string
+	playvolume float64
+	sleeplimit int
 )
 
 var rrs = list.New()
@@ -24,6 +33,18 @@ var hrvAddress, interval string
 var intInterval int
 
 func main() {
+// Set location of config 
+	println("reading configuration")
+	viper.SetConfigName("goImproveSleep") // name of config file (without extension)
+	viper.AddConfigPath(".")   // path to look for the config file in
+
+// Read config
+	read_config()
+
+	c := make(chan bool)
+	go play_pink(c)
+	htime := time.Now()
+
 	println("enabling")
 
 	heartService2UUID, _ := bluetooth.ParseUUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
@@ -105,6 +126,7 @@ func main() {
 			lvalue := uint16(0)
 			hvalue := uint16(0)
 			var hstate string
+			var hbool bool
 			rr := float64(0)
 			if len(buf) > 2 {
 				lvalue = uint16(buf[2])
@@ -114,10 +136,18 @@ func main() {
 					rrs.PushBack(rr)
 				}
 			}
-			if uint8(buf[1]) < 58 {
+			if uint8(buf[1]) < uint8(sleeplimit) {
 				hstate = "asleep"
+				hbool = true
 			} else {
 				hstate = ""
+				hbool = false
+			}
+			t := time.Now()
+			elapsed := t.Sub(htime)
+			if elapsed >= 20 * time.Second {
+				c <- hbool
+				htime = t
 			}
 			fmt.Print(time.Now().Format(time.RFC850))
 			fmt.Printf(" HR: %d RR: %0.0f HRV: %0.0f %s\n", uint8(buf[1]), rr, get_hrv(), hstate)
@@ -162,4 +192,52 @@ func get_hrv() float64 {
 	}
 	//	fmt.Println(i)
 	return sum / float64(i-1)
+}
+
+func read_config() {
+        err := viper.ReadInConfig() // Find and read the config file
+        if err != nil { // Handle errors reading the config file
+                fmt.Printf("Config file not found: %v", err)
+		os.Exit(-4)
+        }
+
+        do_trace = viper.GetBool("do_trace")
+
+	playcmd = viper.GetString("playcmd")
+
+	playfile = viper.GetString("playfile")
+
+	playvolume = viper.GetFloat64("playvolume")
+
+	sleeplimit = viper.GetInt("sleeplimit")
+
+	if do_trace {
+		println("do_trace: ",do_trace)
+		println("playcmd: ",playcmd)
+		println("playfile: ",playfile)
+		fmt.Printf("playvolume %.2f\n",playvolume)
+		fmt.Printf("sleeplimit %d\n",sleeplimit)
+	}
+}
+
+func play_pink(c chan bool) {
+	var volume string
+	var b bool
+	volume = fmt.Sprintf("%0.2f",playvolume)
+	fmt.Printf("%0.2f",playvolume)
+//	println(volume)
+//        cmd := exec.Command(playcmd,"-q","-v",volume,playfile)
+//	println(cmd.Path,cmd.Args[1],cmd.Args[2])
+	b = <- c
+	for {
+		if b {
+       			cmd := exec.Command(playcmd,"-q","-v",volume,playfile)
+			err := cmd.Run()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		b = <- c
+		println(b)
+	}
 }
