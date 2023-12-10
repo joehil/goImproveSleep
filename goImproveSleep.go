@@ -23,6 +23,7 @@ var (
 	heartCharacteristic2UUID    = bluetooth.UUID([4]uint32{0, 0, 0, 0})
 	do_trace bool = true
 	playcmd string
+	blthctlcmd string
 	playfile string
 	playvolume float64
 	sleeplimit int
@@ -42,6 +43,8 @@ func main() {
 
 // Read config
 	read_config()
+
+	connect_sound()
 
 	c := make(chan bool)
 	go play_pink(c)
@@ -212,6 +215,8 @@ func read_config() {
 
 	playcmd = viper.GetString("playcmd")
 
+        blthctlcmd = viper.GetString("blthctlcmd")
+
 	playfile = viper.GetString("playfile")
 
 	playvolume = viper.GetFloat64("playvolume")
@@ -225,6 +230,7 @@ func read_config() {
 	if do_trace {
 		println("do_trace: ",do_trace)
 		println("playcmd: ",playcmd)
+                println("blthctlcmd: ",blthctlcmd)
 		println("playfile: ",playfile)
                 println("heartMac: ",heartMac)
                 println("soundMac: ",soundMac)
@@ -253,4 +259,19 @@ func play_pink(c chan bool) {
 		b = <- c
 		println(b)
 	}
+}
+
+func connect_sound() {
+        cmd := exec.Command(blthctlcmd,"connect",soundMac)
+        err := cmd.Run()
+        if err != nil {
+        	log.Fatal(err)
+        }
+        println(cmd.Path,cmd.Args[1],cmd.Args[2])
+        cmd = exec.Command(blthctlcmd,"trust",soundMac)
+        err = cmd.Run()
+        if err != nil {
+                log.Fatal(err)
+        }
+        println(cmd.Path,cmd.Args[1],cmd.Args[2])
 }

@@ -1,8 +1,11 @@
 # do a trace (get more output to log), true or false
 do_trace = true
 
-# location of tar command
+# location of play command
 playcmd = "/usr/bin/play"
+
+# location of bluetoothctl command
+blthctlcmd = "/usr/bin/bluetoothctl"
 
 # file to play
 playfile = "./data/pink-20.mp3"
