@@ -26,6 +26,8 @@ var (
 	playfile string
 	playvolume float64
 	sleeplimit int
+	heartMac string
+	soundMac string
 )
 
 var rrs = list.New()
@@ -59,7 +61,12 @@ func main() {
 	println("scanning...")
 	err := adapter.Scan(func(adapter *bluetooth.Adapter, result bluetooth.ScanResult) {
 		println("found device:", result.Address.String(), result.RSSI, result.LocalName())
-		hrvAddress, interval = connectAddress()
+		if heartMac == "" { 
+			hrvAddress, interval = connectAddress()
+		} else {
+			hrvAddress = heartMac
+			interval = "9"
+		}
 		if result.Address.String() == hrvAddress {
 			adapter.StopScan()
 			ch <- result
@@ -211,10 +218,16 @@ func read_config() {
 
 	sleeplimit = viper.GetInt("sleeplimit")
 
+        heartMac = viper.GetString("heartMac")
+
+        soundMac = viper.GetString("soundMac")
+
 	if do_trace {
 		println("do_trace: ",do_trace)
 		println("playcmd: ",playcmd)
 		println("playfile: ",playfile)
+                println("heartMac: ",heartMac)
+                println("soundMac: ",soundMac)
 		fmt.Printf("playvolume %.2f\n",playvolume)
 		fmt.Printf("sleeplimit %d\n",sleeplimit)
 	}
@@ -224,7 +237,7 @@ func play_pink(c chan bool) {
 	var volume string
 	var b bool
 	volume = fmt.Sprintf("%0.2f",playvolume)
-	fmt.Printf("%0.2f",playvolume)
+//	fmt.Printf("%0.2f",playvolume)
 //	println(volume)
 //        cmd := exec.Command(playcmd,"-q","-v",volume,playfile)
 //	println(cmd.Path,cmd.Args[1],cmd.Args[2])

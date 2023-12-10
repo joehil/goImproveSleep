@@ -13,3 +13,9 @@ playvolume = 0.03
 # heart rate that indicates sleep
 sleeplimit = 70
 
+# MAC of heart rate sensor
+heartMac = "F6:6E:44:7B:34:E5"
+
+#MAC of headset
+soundMac = "03:21:19:4E:3F:5F"
+
